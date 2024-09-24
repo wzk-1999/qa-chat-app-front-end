@@ -62,9 +62,11 @@ export default {
     const submitMessage = () => {
       if (userInput.value.trim()) {
         // console.log(userInput.value)
+        // console.log(socket)
         // Push user message to the messages array
         userMessages.value.push({ text: userInput.value, type: 'user' });
         if (socket) {
+          // console.log("run")
           socket.send(JSON.stringify({ question: userInput.value }));
         }
         userInput.value = ''; // Clear the input after submission
@@ -92,11 +94,12 @@ export default {
     };
 
     onMounted(() => {
-      const sessionId = document.cookie.split('; ')
-    .find(row => row.startsWith('sessionid'))
-    ?.split('=')[1];
+    //   const sessionId = document.cookie.split('; ')
+    // .find(row => row.startsWith('sessionid'))
+    // ?.split('=')[1];
       // Establish WebSocket connection
-      const socket = new WebSocket(`ws://localhost:8000/ws/chat/?sessionid=${sessionId}`);
+      // const socket = new WebSocket(`ws://localhost:8000/ws/chat/?sessionid=${sessionId}`);
+      socket = new WebSocket(`ws://localhost:8000/ws/chat/`);
 
       socket.onmessage = handleIncomingMessage; // Set the message handler
 
