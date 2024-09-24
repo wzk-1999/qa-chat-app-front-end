@@ -83,7 +83,7 @@ export default {
         if (currentBotMessageIndex === 0) {
           // Push a new bot message placeholder when receiving the first chunk
           userMessages.value.push({ text: '', type: 'bot' });
-          console.log(userMessages.value.length)
+          // console.log(userMessages.value.length)
           currentBotMessageIndex = userMessages.value.length - 1; // Save the index of the current bot message
         }
         // Concatenate the incoming chunk to the current bot message
@@ -96,7 +96,7 @@ export default {
     .find(row => row.startsWith('sessionid'))
     ?.split('=')[1];
       // Establish WebSocket connection
-      const socket = new WebSocket(`ws://localhost:8000/ws/chat/?sessionid=${sessionId}`);
+      socket = new WebSocket(`ws://localhost:8000/ws/chat/?sessionid=${sessionId}`);
 
       socket.onmessage = handleIncomingMessage; // Set the message handler
 
