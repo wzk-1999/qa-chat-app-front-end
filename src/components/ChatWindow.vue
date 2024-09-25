@@ -11,10 +11,12 @@
 
       <!-- Chat messages -->
       <div class="chat-window">
-        <!-- <div v-for="(message, index) in userMessages" :key="index" class="message" :class="message.type">
-          {{ message.text }}
-        </div> -->
-        <div v-for="(message, index) in userMessages" :key="index" class="message" :class="message.type">
+        <div
+          v-for="(message, index) in userMessages"
+          :key="index"
+          class="message"
+          :class="message.type"
+        >
           {{ message.text }}
         </div>
       </div>
@@ -24,11 +26,16 @@
     <a-layout-footer>
       <a-row :gutter="16">
         <!-- Input field occupying most of the row -->
-        <a-col :xs="18" sm="19" md="22" lg="22" xl="23" >
-          <a-input :value="userInput" @input="handleInput" placeholder="请输入您要咨询的内容" @keypress.enter="submitMessage" />
+        <a-col :xs="18" sm="19" md="22" lg="22" xl="23">
+          <a-input
+            :value="userInput"
+            @input="handleInput"
+            placeholder="请输入您要咨询的内容"
+            @keypress.enter="submitMessage"
+          />
         </a-col>
         <!-- Button occupying a small part of the row -->
-        <a-col :xs="6" sm="5" md="2" lg="2" xl="1" >
+        <a-col :xs="6" sm="5" md="2" lg="2" xl="1">
           <a-button type="primary" block @click="submitMessage">提交</a-button>
         </a-col>
       </a-row>
@@ -37,88 +44,133 @@
 </template>
 
 <script>
-import { Input, Button, Layout, Row, Col } from 'ant-design-vue';
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { Input, Button, Layout, Row, Col } from "ant-design-vue";
+import { ref, onMounted, onBeforeUnmount } from "vue";
+import axios from "axios";
 
 export default {
-  name: 'chatwindow',
+  name: "chatwindow",
   components: {
-    'a-input': Input,
-    'a-button': Button,
-    'a-layout': Layout,
-    'a-layout-content': Layout.Content,
-    'a-layout-footer': Layout.Footer,
-    'a-row': Row,
-    'a-col': Col,
+    "a-input": Input,
+    "a-button": Button,
+    "a-layout": Layout,
+    "a-layout-content": Layout.Content,
+    "a-layout-footer": Layout.Footer,
+    "a-row": Row,
+    "a-col": Col,
   },
   setup() {
-    const userInput = ref('');
-    const userMessages = ref([]); // Store messages as an array
-    let socket = null;
-    // let currentBotMessage = ''; // Temporary variable to hold bot message
-    let currentBotMessageIndex = null; // Index of the current bot message being updated
+    const userInput = ref("");
+    const userMessages = ref([]);
+    let eventSource = null;
 
-
-    const submitMessage = () => {
-      if (userInput.value.trim()) {
-        // console.log(userInput.value)
-        // console.log(socket)
-        // Push user message to the messages array
-        userMessages.value.push({ text: userInput.value, type: 'user' });
-        if (socket) {
-          // console.log("run")
-          socket.send(JSON.stringify({ question: userInput.value }));
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== "") {
+        const cookies = document.cookie.split(";");
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          // Check if this cookie string begins with the name we want
+          if (cookie.substring(0, name.length + 1) === name + "=") {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
         }
-        userInput.value = ''; // Clear the input after submission
-        // currentBotMessage='';
-        currentBotMessageIndex=0;
       }
-    };
+      return cookieValue;
+    }
 
     const handleInput = (e) => {
       userInput.value = e.target.value;
     };
 
-    const handleIncomingMessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.message) {
-        if (currentBotMessageIndex === 0) {
-          // Push a new bot message placeholder when receiving the first chunk
-          userMessages.value.push({ text: '', type: 'bot' });
-          console.log(userMessages.value.length)
-          currentBotMessageIndex = userMessages.value.length - 1; // Save the index of the current bot message
+    const API_URL = import.meta.env.VITE_API_URL;
+    // console.log(API_URL)
+
+    // Function to handle submitting the message
+    const submitMessage = async () => {
+      // console.log(userInput.value)
+      // console.log("user messages array: ", userMessages.value); // Log the user messages array
+      if (userInput.value.trim()) {
+        userMessages.value.push({ text: userInput.value, type: "user" });
+
+        // Send the message and session ID to the back-end
+        try {
+          // console.log(document.cookie);
+          // console.log(getCookie("csrftoken"));
+          axios.defaults.withCredentials = true; // Allow credentials to be sent with requests
+
+          axios.defaults.headers.common["X-CSRFToken"] = getCookie("csrftoken"); // Implement getCookie to fetch CSRF token
+          // console.log(sessionStorage.getItem("session_id"));
+          await axios.post(`${API_URL}api/v1/chat/stream/`, {
+            session_id: sessionStorage.getItem("session_id"), // Send the session ID in the request body
+            question: userInput.value,
+          });
+          userInput.value = "";
+          let currentBotMessageIndex = 0; // Index of the current bot message being updated
+          // Start listening to the SSE response after sending the question
+          const eventSource = new EventSource(
+            `${API_URL}api/v1/chat/stream/sse/?session_id=${sessionStorage.getItem(
+              "session_id"
+            )}`
+          );
+
+          eventSource.onmessage = (event) => {
+            const message = JSON.parse(event.data);
+            if (message) {
+              if (currentBotMessageIndex === 0) {
+                // Push a new bot message placeholder when receiving the first chunk
+                userMessages.value.push({ text: "", type: "bot" });
+                // console.log(userMessages.value.length)
+                currentBotMessageIndex = userMessages.value.length - 1; // Save the index of the current bot message
+              }
+              // Concatenate the incoming chunk to the current bot message
+              userMessages.value[currentBotMessageIndex].text +=
+                message.message;
+            }
+          };
+
+          // Close the EventSource after completing
+          eventSource.onclose = () => {
+            console.log("SSE connection closed.");
+          };
+        } catch (error) {
+          console.error("Error sending message:", error);
         }
-        // Concatenate the incoming chunk to the current bot message
-        userMessages.value[currentBotMessageIndex].text += data.message;
+
+        // currentBotMessageIndex=0;
       }
     };
 
-    onMounted(() => {
-    //   const sessionId = document.cookie.split('; ')
-    // .find(row => row.startsWith('sessionid'))
-    // ?.split('=')[1];
-      // Establish WebSocket connection
-      // const socket = new WebSocket(`ws://localhost:8000/ws/chat/?sessionid=${sessionId}`);
-      socket = new WebSocket(`ws://localhost:8000/ws/chat/`);
-
-      socket.onmessage = handleIncomingMessage; // Set the message handler
-
-      socket.onopen = () => {
-        console.log('WebSocket connection established');
-      };
-
-      socket.onclose = () => {
-        console.log('WebSocket connection closed');
-      };
-
-      socket.onerror = (error) => {
-        console.error('WebSocket error:', error);
-      };
+    onMounted(async () => {
+      // Load recent 10 messages when the page renders
+      await loadRecentMessages();
     });
 
+    const loadRecentMessages = async () => {
+      try {
+        const sessionId = sessionStorage.getItem("session_id");
+        const finalSessionId =
+          sessionId && sessionId !== "undefined" ? sessionId : "";
+        const response = await axios.get(
+          `${API_URL}api/v1/inquiry/?session_id=${finalSessionId}`
+        );
+
+        const { session_id, messages } = response.data;
+
+        // Store session ID in sessionStorage
+        sessionStorage.setItem("session_id", session_id);
+
+        // Update chat with recent messages
+        userMessages.value = messages || [];
+      } catch (error) {
+        console.error("Error loading recent messages:", error);
+      }
+    };
+
     onBeforeUnmount(() => {
-      if (socket) {
-        socket.close(); // Clean up the WebSocket connection
+      if (eventSource) {
+        eventSource.close();
       }
     });
 
@@ -126,12 +178,11 @@ export default {
       userInput,
       userMessages,
       submitMessage,
-      handleInput
+      handleInput,
     };
   },
 };
 </script>
-
 
 <style scoped>
 .customer-service {
