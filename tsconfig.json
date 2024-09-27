@@ -20,4 +20,5 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true
   }
+  // "preserveSymlinks": true
 }

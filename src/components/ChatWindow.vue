@@ -1,13 +1,26 @@
 <template>
   <a-layout class="customer-service">
     <a-layout-content>
-      <h2>运维问答</h2>
-      <p>中国科技网全心全意为您服务</p>
-      <div class="options">
-        <a href="#">活动</a>
-        <a href="#">套餐</a>
-        <a href="#">预约</a>
-      </div>
+      <!-- Flex container for title and link -->
+      <a-row>
+        <a-col :span="20">
+          <a-typography-title :level="3">运维问答</a-typography-title>
+        </a-col>
+        <a-col :span="4" style="margin-top: 1.5rem">
+          <!-- Conditionally display UserProfile if user is logged in, else show login link -->
+          <div v-if="isLoggedIn">
+            <UserProfile />
+          </div>
+          <router-link v-else to="/login">登录邮箱</router-link>
+        </a-col>
+      </a-row>
+      <a-row>
+        <a-col :span="20">
+          <a-typography-text type="success"
+            >中国科技网全心全意为您服务</a-typography-text
+          >
+        </a-col>
+      </a-row>
 
       <!-- Chat messages -->
       <div class="chat-window">
@@ -48,7 +61,9 @@
 
 <script>
 import { Input, Button, Layout, Row, Col } from "ant-design-vue";
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { ref, onMounted, onBeforeUnmount, computed } from "vue";
+import Cookies from "js-cookie";
+import UserProfile from "@/components/UserProfile.vue"; // Make sure to import UserProfile
 
 export default {
   name: "chatwindow",
@@ -60,15 +75,21 @@ export default {
     "a-layout-footer": Layout.Footer,
     "a-row": Row,
     "a-col": Col,
+    UserProfile,
   },
   setup() {
     const userInput = ref("");
     const userMessages = ref([]); // Store messages as an array
     let socket = null;
-    // let currentBotMessage = ''; // Temporary variable to hold bot message
-    let currentBotMessageIndex = null; // Index of the current bot message being updated
+    // let currentBotMessage = ''; // Temporary variable to hold assistant message
+    let currentBotMessageIndex = null; // Index of the current assistant message being updated
     let sessionId = sessionStorage.getItem("session_id");
-    const API_URL = import.meta.env.VITE_API_URL;
+
+    // Check if the user is logged in by checking the JWT cookie
+    const token = Cookies.get("jwt");
+    const isLoggedIn = computed(() => !!token); // User is logged in if token exists
+
+    // const API_URL = import.meta.env.VITE_API_URL;
 
     const submitMessage = () => {
       if (userInput.value.trim()) {
@@ -94,12 +115,12 @@ export default {
       // if the response data don't type property but have message property, means it's robot generated
       if (data.message && !data.type) {
         if (currentBotMessageIndex === 0) {
-          // Push a new bot message placeholder when receiving the first chunk
-          userMessages.value.push({ text: "", type: "bot" });
+          // Push a new assistant message placeholder when receiving the first chunk
+          userMessages.value.push({ text: "", type: "assistant" });
           // console.log(userMessages.value.length)
-          currentBotMessageIndex = userMessages.value.length - 1; // Save the index of the current bot message
+          currentBotMessageIndex = userMessages.value.length - 1; // Save the index of the current assistant message
         }
-        // Concatenate the incoming chunk to the current bot message
+        // Concatenate the incoming chunk to the current assistant message
         userMessages.value[currentBotMessageIndex].text += data.message;
       }
       // if the response data have messages property, means it's chat history from redis
@@ -164,6 +185,7 @@ export default {
       userMessages,
       submitMessage,
       handleInput,
+      isLoggedIn,
     };
   },
 };
@@ -181,16 +203,6 @@ export default {
 
 a-layout-content {
   flex: 1;
-}
-
-.options {
-  margin: 10px 0;
-  display: flex;
-  justify-content: center;
-}
-
-.options a {
-  margin: 0 15px;
 }
 
 .chat-window {
@@ -212,7 +224,7 @@ a-layout-content {
   text-align: right;
 }
 
-.message.bot {
+.message.assistant {
   background-color: #f6ffed;
   text-align: left;
 }
