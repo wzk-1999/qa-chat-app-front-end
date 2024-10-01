@@ -16,6 +16,7 @@
         ></a-col
       >
     </a-row>
+    <div v-html="renderedMarkdown" class="markdown-content"></div>
   </a-layout>
 </template>
 
@@ -23,6 +24,7 @@
 import UserProfile from "./UserProfile.vue";
 import type { FlexProps } from "ant-design-vue";
 import { ref } from "vue";
+import MarkdownIt from "markdown-it"; // Import MarkdownIt
 
 export default {
   components: {
@@ -30,7 +32,21 @@ export default {
   },
   setup() {
     const justify = ref<FlexProps["justify"]>("center");
-    return { justify };
+    // Create a MarkdownIt instance
+    const md = new MarkdownIt({
+      // breaks: true, // Respect single-line breaks
+    });
+
+    // Sample markdown content
+    const markdownContent =
+      "### 方法二：使用在线的Java编译器和运行器（如果需要快速测试）\n ### 方法一：在命令行（适用于基于Java的环境如IDEA，Eclipse等）```java " +
+      "public" +
+      "``` test";
+
+    // Render the markdown content to HTML
+    const renderedMarkdown = ref(md.render(markdownContent));
+
+    return { justify, renderedMarkdown };
   },
 };
 </script>

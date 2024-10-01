@@ -56,6 +56,17 @@ export default {
     const API_URL = import.meta.env.VITE_API_URL;
     const router = useRouter();
 
+    const fetchCSRFToken = async () => {
+      try {
+        const response = await axios.get(`${API_URL}api/v1/get_csrf_token/`, {
+          withCredentials: true,
+        });
+        return response.data.csrfToken;
+      } catch (error) {
+        console.error("Failed to fetch CSRF token", error);
+      }
+    };
+
     const submitLogin = async () => {
       /* console.log(
         "Logging in with email:",
@@ -66,6 +77,8 @@ export default {
 
       // Here you would normally send the login data to the server
       try {
+        await fetchCSRFToken();
+
         const response = await axios.post(`${API_URL}api/v1/login/`, {
           email: email.value,
         });
