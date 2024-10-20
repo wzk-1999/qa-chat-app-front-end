@@ -1,24 +1,39 @@
 # qa-chat-app
 
-This template should help get you started developing with Vue 3 in Vite.
+## nginx configuration
 
-## Recommended IDE Setup
+### Include the conf.d directory
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+````http {
+include       mime.types;  # Make sure this line is included
+default_type  application/octet-stream;
+    include C:/nginx-1.26.2/conf/conf.d/*.conf;  # Include all .conf files in conf.d
+}```
 
-## Type Support for `.vue` Imports in TS
+```server {
+    listen 5173;
+    server_name localhost;  # You can replace this with localhost or your domain
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
+    location / {
+        root C:/nginx-1.26.2/html/dist;  # Path to your web app (adjust this if needed)
+        try_files $uri $uri/ /index.html;  # Handle single-page application routing
 
-## Customize configuration
+		proxy_intercept_errors on;
+               # Custom error page configuration
 
-See [Vite Configuration Reference](https://vitejs.dev/config/).
+    }
 
+    location /pdfs/ {
+        alias C:/nginx-1.26.2/html/pdfs/;  # Folder for PDFs
+    }
+}```
+
+add the pdf file inside the `/nginx/html/pdfs/`
 ## Project Setup
 
 ```sh
 npm install
-```
+````
 
 ### Compile and Hot-Reload for Development
 

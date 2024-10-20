@@ -17,6 +17,7 @@
       >
     </a-row>
     <div v-html="renderedMarkdown" class="markdown-content"></div>
+    <FaqComponent />
   </a-layout>
 </template>
 
@@ -25,10 +26,12 @@ import UserProfile from "./UserProfile.vue";
 import type { FlexProps } from "ant-design-vue";
 import { ref } from "vue";
 import MarkdownIt from "markdown-it"; // Import MarkdownIt
+import FaqComponent from "../components/FaqComponent.vue";
 
 export default {
   components: {
     UserProfile,
+    FaqComponent,
   },
   setup() {
     const justify = ref<FlexProps["justify"]>("center");
