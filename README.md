@@ -4,36 +4,39 @@
 
 ### Include the conf.d directory
 
-````http {
-include       mime.types;  # Make sure this line is included
-default_type  application/octet-stream;
-    include C:/nginx-1.26.2/conf/conf.d/*.conf;  # Include all .conf files in conf.d
-}```
+http {
+include mime.types;
 
-```server {
-    listen 5173;
-    server_name localhost;  # You can replace this with localhost or your domain
+default_type application/octet-stream;
+
+include C:/nginx-1.26.2/conf/conf.d/\*.conf;
+}
+
+server {
+listen 5173;
+server_name localhost;
 
     location / {
-        root C:/nginx-1.26.2/html/dist;  # Path to your web app (adjust this if needed)
-        try_files $uri $uri/ /index.html;  # Handle single-page application routing
+        root C:/nginx-1.26.2/html/dist;
+        try_files $uri $uri/ /index.html;
 
-		proxy_intercept_errors on;
-               # Custom error page configuration
+    	proxy_intercept_errors on;
 
     }
 
     location /pdfs/ {
-        alias C:/nginx-1.26.2/html/pdfs/;  # Folder for PDFs
+        alias C:/nginx-1.26.2/html/pdfs/;
     }
-}```
+
+}
 
 add the pdf file inside the `/nginx/html/pdfs/`
+
 ## Project Setup
 
 ```sh
 npm install
-````
+```
 
 ### Compile and Hot-Reload for Development
 
